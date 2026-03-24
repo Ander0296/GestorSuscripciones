@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GestorSuscripciones</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <!-- ======================================================
+         VISTA: Autenticación (Login / Registro)
+         ====================================================== -->
+    <div id="vista-auth" class="vista">
+        <div class="auth-container">
+            <div class="auth-logo">
+                <span class="logo-icon">💳</span>
+                <h1>GestorSuscripciones</h1>
+                <p>Tus finanzas, bajo control</p>
+            </div>
+
+            <div class="auth-tabs" role="tablist">
+                <button class="tab-btn active" data-tab="login" role="tab" aria-selected="true">
+                    Iniciar Sesión
+                </button>
+                <button class="tab-btn" data-tab="registro" role="tab" aria-selected="false">
+                    Registrarse
+                </button>
+            </div>
+
+            <form id="form-auth" class="auth-form" novalidate>
+                <div class="form-group">
+                    <label for="auth-username">Usuario</label>
+                    <input type="text" id="auth-username" placeholder="Tu nombre de usuario"
+                           autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="auth-password">Contraseña</label>
+                    <input type="password" id="auth-password" placeholder="Tu contraseña"
+                           autocomplete="current-password" required>
+                </div>
+                <div id="auth-error" class="error-msg hidden" role="alert"></div>
+                <button type="submit" id="auth-submit-btn" class="btn btn-primary btn-full">
+                    Entrar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- ======================================================
+         VISTA: Aplicación Principal
+         ====================================================== -->
+    <div id="vista-app" class="vista hidden">
+
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-brand">
+                <span class="logo-icon-sm">💳</span>
+                <span class="brand-name">GestorSuscripciones</span>
+            </div>
+            <div class="header-user">
+                <span id="header-username">Bienvenido</span>
+                <button id="btn-logout" class="btn btn-outline-sm">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <main class="app-main">
+
+            <!-- Dashboard de estadísticas -->
+            <section class="dashboard" aria-label="Panel de control">
+                <h2 class="section-title">Panel de Control</h2>
+                <div class="dashboard-cards">
+
+                    <div class="card card-activas">
+                        <div class="card-icon" aria-hidden="true">📊</div>
+                        <div class="card-info">
+                            <span id="stat-activas" class="stat-number">0</span>
+                            <span class="stat-label">Suscripciones Activas</span>
+                        </div>
+                    </div>
+
+                    <div class="card card-mensual">
+                        <div class="card-icon" aria-hidden="true">📅</div>
+                        <div class="card-info">
+                            <span id="stat-mensual" class="stat-number">$0.00</span>
+                            <span class="stat-label">Gasto Mensual</span>
+                        </div>
+                    </div>
+
+                    <div class="card card-anual">
+                        <div class="card-icon" aria-hidden="true">📈</div>
+                        <div class="card-info">
+                            <span id="stat-anual" class="stat-number">$0.00</span>
+                            <span class="stat-label">Gasto Anual Proyectado</span>
+                        </div>
+                    </div>
+
+                    <div class="card card-alerta">
+                        <div class="card-icon" aria-hidden="true">⚠️</div>
+                        <div class="card-info">
+                            <span id="stat-inactivos" class="stat-number">0</span>
+                            <span class="stat-label">Canceladas con Cobro Próximo</span>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+
+            <!-- Barra de controles: filtros + botón de alta -->
+            <section class="controles" aria-label="Controles de lista">
+                <div class="filtros">
+                    <select id="filtro-categoria" class="select-filtro" aria-label="Filtrar por categoría">
+                        <option value="">Todas las categorías</option>
+                        <option value="Entretenimiento">Entretenimiento</option>
+                        <option value="Música">Música</option>
+                        <option value="Trabajo/Productividad">Trabajo/Productividad</option>
+                        <option value="Educación">Educación</option>
+                        <option value="Salud">Salud</option>
+                        <option value="Gaming">Gaming</option>
+                        <option value="Noticias">Noticias</option>
+                        <option value="Otro">Otro</option>
+                    </select>
+                    <select id="filtro-estado" class="select-filtro" aria-label="Filtrar por estado">
+                        <option value="">Todos los estados</option>
+                        <option value="activa">Activas</option>
+                        <option value="cancelada">Canceladas</option>
+                    </select>
+                </div>
+                <button id="btn-nueva" class="btn btn-primary">+ Nueva Suscripción</button>
+            </section>
+
+            <!-- Tabla de suscripciones -->
+            <section class="tabla-container" aria-label="Lista de suscripciones">
+                <h2 class="section-title">Mis Suscripciones</h2>
+                <div id="tabla-wrapper">
+                    <!-- Contenido renderizado dinámicamente por UI.renderTabla() -->
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- ======================================================
+         MODAL: Nueva / Editar Suscripción
+         ====================================================== -->
+    <div id="modal-overlay" class="modal-overlay hidden" role="dialog"
+         aria-modal="true" aria-labelledby="modal-title">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Nueva Suscripción</h3>
+                <button id="modal-cerrar" class="btn-cerrar" aria-label="Cerrar">✕</button>
+            </div>
+            <form id="form-suscripcion" class="modal-form" novalidate>
+                <div class="form-group">
+                    <label for="sub-nombre">Nombre del Servicio</label>
+                    <input type="text" id="sub-nombre" placeholder="Ej: Netflix, Spotify..." required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sub-categoria">Categoría</label>
+                        <select id="sub-categoria" required>
+                            <option value="">Selecciona...</option>
+                            <option value="Entretenimiento">Entretenimiento</option>
+                            <option value="Música">Música</option>
+                            <option value="Trabajo/Productividad">Trabajo/Productividad</option>
+                            <option value="Educación">Educación</option>
+                            <option value="Salud">Salud</option>
+                            <option value="Gaming">Gaming</option>
+                            <option value="Noticias">Noticias</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="sub-costo">Costo Mensual ($)</label>
+                        <input type="number" id="sub-costo" placeholder="0.00"
+                               min="0" step="0.01" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="sub-fecha">Fecha de Cobro</label>
+                        <input type="date" id="sub-fecha" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Estado</label>
+                        <div class="radio-group">
+                            <label class="radio-label">
+                                <input type="radio" name="sub-estado" value="activa" checked>
+                                <span>Activa</span>
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="sub-estado" value="cancelada">
+                                <span>Cancelada</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" id="btn-cancelar-modal" class="btn btn-secondary">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
