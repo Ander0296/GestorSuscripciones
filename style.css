@@ -514,6 +514,47 @@ body {
 
 
 /* ============================================================
+   LOGOS DE SERVICIOS
+   ============================================================ */
+.service-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-radius: var(--radius-xs);
+    overflow: hidden;
+    vertical-align: middle;
+}
+
+.service-logo svg {
+    display: block;
+}
+
+.service-logo-placeholder {
+    color: white;
+    font-weight: 700;
+    border-radius: var(--radius-xs);
+    line-height: 1;
+}
+
+.celda-nombre {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.logo-preview {
+    display: none;
+    justify-content: center;
+    padding-bottom: 12px;
+}
+
+.logo-preview--visible {
+    display: flex;
+}
+
+
+/* ============================================================
    BADGES
    ============================================================ */
 .badge {
@@ -773,6 +814,10 @@ body {
     }
 
     .acciones { justify-content: flex-end; }
+
+    .celda-nombre {
+        gap: 8px;
+    }
 }
 
 /* Móvil pequeño */
