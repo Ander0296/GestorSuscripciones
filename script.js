@@ -228,32 +228,39 @@ class Suscripcion {
     id,
     nombre,
     categoria,
+    costo,
     costoMensual,
     fechaCobro,
     estado,
+    ciclo,
     creadaEn,
   } = {}) {
-    // Genera un ID único combinando timestamp + sufijo aleatorio
     this.id =
       id || `s_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     this.nombre = nombre;
     this.categoria = categoria;
-    this.costoMensual = parseFloat(costoMensual) || 0;
+    this.costo = parseFloat(costo || costoMensual) || 0;
     this.fechaCobro = fechaCobro; // YYYY-MM-DD
     this.estado = estado || "activa";
+    this.ciclo = ciclo || "mensual";
     this.creadaEn = creadaEn || new Date().toISOString();
   }
 
   /* -------- Cálculos -------- */
 
-  /**
-   * Retorna el costo anual proyectado (costoMensual × 12).
-   * Solo tiene sentido económico para suscripciones activas;
-   * el dashboard filtra por estado antes de llamarlo.
-   * @returns {number}
-   */
+  getCostoMensual() {
+    switch (this.ciclo) {
+      case "semanal":     return this.costo * 4.33;
+      case "mensual":     return this.costo;
+      case "trimestral":  return this.costo / 3;
+      case "semestral":   return this.costo / 6;
+      case "anual":       return this.costo / 12;
+      default:            return this.costo;
+    }
+  }
+
   getCostoAnual() {
-    return this.costoMensual * 12;
+    return this.getCostoMensual() * 12;
   }
 
   /**
@@ -291,9 +298,10 @@ class Suscripcion {
       id: this.id,
       nombre: this.nombre,
       categoria: this.categoria,
-      costoMensual: this.costoMensual,
+      costo: this.costo,
       fechaCobro: this.fechaCobro,
       estado: this.estado,
+      ciclo: this.ciclo,
       creadaEn: this.creadaEn,
     };
   }
@@ -589,7 +597,7 @@ class AppManager {
   getGastoMensualTotal() {
     return this.suscripciones
       .filter((s) => s.estaActiva())
-      .reduce((acc, s) => acc + s.costoMensual, 0);
+      .reduce((acc, s) => acc + s.getCostoMensual(), 0);
   }
 
   /**
@@ -761,7 +769,7 @@ class UI {
                     <span class="badge badge-categoria">${this._escapeHTML(s.categoria)}</span>
                 </td>
                 <td data-label="Costo/Mes" class="text-right">
-                    ${this._formatCurrency(s.costoMensual)}
+                    ${this._formatCurrency(s.getCostoMensual())} <span class="badge badge-ciclo">${s.ciclo}</span>
                 </td>
                 <td data-label="Costo/Año" class="text-right">
                     ${this._formatCurrency(s.getCostoAnual())}
@@ -833,7 +841,7 @@ class UI {
     document.getElementById("modal-title").textContent = "Nueva Suscripción";
     this.formSub.reset();
     this._limpiarLogoPreview();
-    // Asegurar estado por defecto = activa
+    document.getElementById("sub-ciclo").value = "mensual";
     document.querySelector('input[name="sub-estado"][value="activa"]').checked =
       true;
     this.modalOverlay.classList.remove("hidden");
@@ -854,7 +862,8 @@ class UI {
 
     document.getElementById("sub-nombre").value = sub.nombre;
     document.getElementById("sub-categoria").value = sub.categoria;
-    document.getElementById("sub-costo").value = sub.costoMensual;
+    document.getElementById("sub-costo").value = sub.costo;
+    document.getElementById("sub-ciclo").value = sub.ciclo;
     document.getElementById("sub-fecha").value = sub.fechaCobro;
 
     document.querySelector(
@@ -1054,7 +1063,8 @@ class UI {
       const datos = {
         nombre: document.getElementById("sub-nombre").value.trim(),
         categoria: document.getElementById("sub-categoria").value,
-        costoMensual: document.getElementById("sub-costo").value,
+        costo: document.getElementById("sub-costo").value,
+        ciclo: document.getElementById("sub-ciclo").value,
         fechaCobro: document.getElementById("sub-fecha").value,
         estado: document.querySelector('input[name="sub-estado"]:checked')
           .value,
