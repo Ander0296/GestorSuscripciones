@@ -21,7 +21,7 @@ Entretenimiento, Música, Trabajo/Productividad, Educación, Salud, Gaming, Noti
 
 ## Mejoras planificadas (priorizadas)
 ### Quick wins
-1. Logos/íconos de servicios populares (catálogo precargado)
+1. ~~Logos/íconos de servicios populares~~ (HECHO - en feature/logos-servicios)
 2. Ciclo de facturación flexible (semanal, mensual, trimestral, anual) — hoy solo mensual
 3. Multi-moneda (USD, ARS, EUR)
 4. Recordatorios con Notification API
@@ -54,7 +54,15 @@ Entretenimiento, Música, Trabajo/Productividad, Educación, Salud, Gaming, Noti
 - **Emma**: Open Banking, multi-cuenta, inversiones + suscripciones
 
 ## Decisiones tomadas
-- (ninguna aún — se irán registrando acá)
+- Logos SVG embebidos directamente (no CDN externo) — cero dependencias, funciona offline
+- Matching de servicios: exacto + parcial, normalizado (lowercase, sin espacios/especiales)
+- Fallback para servicios no reconocidos: círculo con inicial + color generado por hash del nombre
+- Servicios con texto SVG (Disney+, Microsoft 365, Google One, iCloud): usan texto sobre rect en lugar de path
+
+## Features implementadas
+- [x] Logos/íconos de servicios populares — catálogo de 23 servicios con SVG reales
+  - Logo visible en tabla de suscripciones y preview en tiempo real en el modal
+  - Servicios: Netflix, Spotify, YouTube, Disney+, HBO, Amazon Prime Video, Apple TV, Twitch, Crunchyroll, Steam, PlayStation, Xbox, Adobe CC, Microsoft 365, Google One, Dropbox, iCloud, GitHub, Notion, Slack, Canva, Duolingo, ChatGPT
 
 ## Sesiones de trabajo
-- **2026-03-24**: Análisis de competencia y definición de roadmap de mejoras
+- **2026-03-24**: Análisis de competencia, definición de roadmap, implementación de logos SVG (feature/logos-servicios)
