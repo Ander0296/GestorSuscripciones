@@ -22,7 +22,7 @@ Entretenimiento, Música, Trabajo/Productividad, Educación, Salud, Gaming, Noti
 ## Mejoras planificadas (priorizadas)
 ### Quick wins
 1. ~~Logos/íconos de servicios populares~~ (HECHO - en feature/logos-servicios)
-2. Ciclo de facturación flexible (semanal, mensual, trimestral, anual) — hoy solo mensual
+2. ~~Ciclo de facturación flexible~~ (HECHO - en feature/ciclo-facturacion)
 3. Multi-moneda (USD, ARS, EUR)
 4. Recordatorios con Notification API
 5. Vista calendario de cobros
@@ -58,11 +58,18 @@ Entretenimiento, Música, Trabajo/Productividad, Educación, Salud, Gaming, Noti
 - Matching de servicios: exacto + parcial, normalizado (lowercase, sin espacios/especiales)
 - Fallback para servicios no reconocidos: círculo con inicial + color generado por hash del nombre
 - Servicios con texto SVG (Disney+, Microsoft 365, Google One, iCloud): usan texto sobre rect en lugar de path
+- Ciclos de facturación: semanal (×4.33), mensual (×1), trimestral (÷3), semestral (÷6), anual (÷12)
+- Factor semanal 4.33 viene de 52 semanas ÷ 12 meses
+- Campo renombrado: costoMensual → costo (con backward compat para datos viejos en localStorage)
 
 ## Features implementadas
 - [x] Logos/íconos de servicios populares — catálogo de 23 servicios con SVG reales
   - Logo visible en tabla de suscripciones y preview en tiempo real en el modal
   - Servicios: Netflix, Spotify, YouTube, Disney+, HBO, Amazon Prime Video, Apple TV, Twitch, Crunchyroll, Steam, PlayStation, Xbox, Adobe CC, Microsoft 365, Google One, Dropbox, iCloud, GitHub, Notion, Slack, Canva, Duolingo, ChatGPT
+- [x] Ciclo de facturación flexible — 5 ciclos: semanal, mensual, trimestral, semestral, anual
+  - Dashboard normaliza todo a costo mensual para comparar
+  - Badge de ciclo visible en la tabla junto al costo
+  - Backward compatible con suscripciones guardadas sin ciclo (default: mensual)
 
 ## Sesiones de trabajo
-- **2026-03-24**: Análisis de competencia, definición de roadmap, implementación de logos SVG (feature/logos-servicios)
+- **2026-03-24**: Análisis de competencia, definición de roadmap, implementación de logos SVG y ciclos de facturación
