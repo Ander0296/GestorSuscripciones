@@ -134,6 +134,17 @@ const MONEDAS = {
   GBP: { simbolo: "£", nombre: "Libra esterlina" },
 };
 
+const COLORES_CATEGORIAS = {
+  "Entretenimiento": "#6366f1",
+  "Música": "#22c55e",
+  "Trabajo/Productividad": "#3b82f6",
+  "Educación": "#f59e0b",
+  "Salud": "#ef4444",
+  "Gaming": "#8b5cf6",
+  "Noticias": "#64748b",
+  "Otro": "#94a3b8"
+};
+
 function buscarServicio(nombre) {
   if (!nombre) return null;
   const normalizado = nombre.toLowerCase().replace(/[^a-z0-9+]/g, "");
@@ -514,6 +525,22 @@ class AppManager {
   }
 
   /**
+   * Retorna un array con el gasto mensual totalizado por categoría,
+   * solo de suscripciones activas.
+   * @returns {{ categoria: string, total: number }[]}
+   */
+  getGastoPorCategoria() {
+    const gastos = {};
+    this.suscripciones
+      .filter(s => s.estaActiva())
+      .forEach(s => {
+        if (!gastos[s.categoria]) gastos[s.categoria] = 0;
+        gastos[s.categoria] += s.getCostoMensual();
+      });
+    return Object.entries(gastos).map(([categoria, total]) => ({ categoria, total }));
+  }
+
+  /**
    * Retorna suscripciones activas cuya fecha de cobro está dentro
    * de los próximos `dias` días (incluyendo hoy).
    * @param   {number}        dias
@@ -592,6 +619,9 @@ class UI {
     this.app = appManager;
     /** ID de la suscripción en edición; null en modo "crear" */
     this.editandoId = null;
+
+    /** Instancia de Chart.js para el gráfico de categorías */
+    this.chartCategorias = null;
 
     /** Estado del calendario: mes y año actuales */
     this.calMes = new Date().getMonth();
@@ -702,6 +732,128 @@ class UI {
 
     const cardAlerta = document.querySelector(".card-alerta");
     cardAlerta.classList.toggle("card-alerta--activa", inactivos.length > 0);
+  }
+
+  /* ============================================================
+   *  Renderizado del Gráfico de Gastos por Categoría
+   * ============================================================ */
+
+  /**
+   * Renderiza un gráfico de dona (doughnut) con los gastos mensuales
+   * agrupados por categoría, usando Chart.js.
+   */
+  renderGrafico() {
+    if (typeof Chart === "undefined") return;
+
+    const canvas = document.getElementById("grafico-categorias");
+    const msgVacio = document.getElementById("grafico-vacio");
+    if (!canvas || !msgVacio) return;
+
+    const datos = this.app.getGastoPorCategoria();
+
+    if (datos.length === 0) {
+      canvas.style.display = "none";
+      msgVacio.classList.remove("hidden");
+      if (this.chartCategorias) {
+        this.chartCategorias.destroy();
+        this.chartCategorias = null;
+      }
+      return;
+    }
+
+    canvas.style.display = "";
+    msgVacio.classList.add("hidden");
+
+    if (this.chartCategorias) {
+      this.chartCategorias.destroy();
+      this.chartCategorias = null;
+    }
+
+    const labels = datos.map(d => d.categoria);
+    const values = datos.map(d => d.total);
+    const colores = datos.map(d => COLORES_CATEGORIAS[d.categoria] || "#94a3b8");
+
+    const esMobile = window.innerWidth <= 640;
+    const totalMes = values.reduce((a, b) => a + b, 0);
+
+    const pluginCentro = {
+      id: "pluginCentro",
+      afterDraw: (chart) => {
+        const { ctx, chartArea: { top, bottom, left, right, width, height } } = chart;
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#64748b"; // Color de texto secundario
+        ctx.font = "bold 12px sans-serif";
+        ctx.fillText("TOTAL", left + width / 2, top + height / 2 - 12);
+        ctx.fillStyle = "#1e293b"; // Color de texto principal
+        ctx.font = "bold 16px sans-serif";
+        ctx.fillText(`$${totalMes.toFixed(2)}`, left + width / 2, top + height / 2 + 10);
+        ctx.restore();
+      },
+    };
+
+    this.chartCategorias = new Chart(canvas, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          backgroundColor: colores,
+          borderWidth: 2,
+          borderColor: "#fff",
+          hoverOffset: 12, // Efecto pro al pasar el mouse
+        }],
+      },
+      plugins: [pluginCentro],
+      options: {
+        responsive: true,
+        maintainAspectRatio: true,
+        cutout: "75%", // Dona más delgada para estilo moderno
+        onClick: (event, elements) => {
+          if (elements.length > 0) {
+            const index = elements[0].index;
+            const categoria = labels[index];
+            const selectCategoria = document.getElementById("filtro-categoria");
+
+            if (selectCategoria) {
+              // Si ya está seleccionada esa categoría, volvemos a "Todas"
+              if (selectCategoria.value === categoria) {
+                selectCategoria.value = "";
+              } else {
+                selectCategoria.value = categoria;
+              }
+              // Forzamos la actualización de la vista
+              this._actualizarVista();
+            }
+          }
+        },
+        plugins: {
+          legend: {
+            position: "bottom",
+            labels: {
+              padding: 24,
+              usePointStyle: true,
+              pointStyle: "circle",
+            },
+          },
+          tooltip: {
+            backgroundColor: "rgba(15, 23, 42, 0.9)", // Tooltip más oscuro y pro
+            padding: 12,
+            titleFont: { size: 14 },
+            bodyFont: { size: 13 },
+            callbacks: {
+              label: (context) => {
+                const valor = context.parsed.toFixed(2);
+                const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                const porcentaje = ((context.parsed / total) * 100).toFixed(1);
+                return ` ${context.label}: $${valor} (${porcentaje}%)`;
+              },
+            },
+          },
+        },
+      },
+    });
   }
 
   /* ============================================================
@@ -905,6 +1057,7 @@ class UI {
     }
 
     this.renderDashboard(); // siempre sobre el total, no sobre la lista filtrada
+    this.renderGrafico();
     this.renderTabla(lista);
     this.renderCalendario();
   }

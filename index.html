@@ -194,25 +194,35 @@
           </div>
         </section>
 
-        <!-- Calendario de cobros -->
-        <section class="calendario-section" aria-label="Calendario de cobros">
-          <h2 class="section-title">Calendario de Cobros</h2>
-          <div class="calendario-controles">
-            <button id="cal-anterior" class="btn btn-outline-sm">← Anterior</button>
-            <h3 id="cal-mes-titulo" class="cal-mes-titulo">Marzo 2026</h3>
-            <button id="cal-siguiente" class="btn btn-outline-sm">Siguiente →</button>
-          </div>
-          <div class="calendario-grid">
-            <div class="cal-header">Lun</div>
-            <div class="cal-header">Mar</div>
-            <div class="cal-header">Mié</div>
-            <div class="cal-header">Jue</div>
-            <div class="cal-header">Vie</div>
-            <div class="cal-header">Sáb</div>
-            <div class="cal-header">Dom</div>
-          </div>
-          <div id="cal-cuerpo" class="calendario-cuerpo"></div>
-        </section>
+        <!-- Calendario + Gráfico lado a lado -->
+        <div class="panel-inferior">
+          <section class="calendario-section" aria-label="Calendario de cobros">
+            <h2 class="section-title">Calendario de Cobros</h2>
+            <div class="calendario-controles">
+              <button id="cal-anterior" class="btn btn-outline-sm">← Anterior</button>
+              <h3 id="cal-mes-titulo" class="cal-mes-titulo">Marzo 2026</h3>
+              <button id="cal-siguiente" class="btn btn-outline-sm">Siguiente →</button>
+            </div>
+            <div class="calendario-grid">
+              <div class="cal-header">Lun</div>
+              <div class="cal-header">Mar</div>
+              <div class="cal-header">Mié</div>
+              <div class="cal-header">Jue</div>
+              <div class="cal-header">Vie</div>
+              <div class="cal-header">Sáb</div>
+              <div class="cal-header">Dom</div>
+            </div>
+            <div id="cal-cuerpo" class="calendario-cuerpo"></div>
+          </section>
+
+          <section class="grafico-section" aria-label="Gráfico de gastos">
+            <h2 class="section-title">Gastos por Categoría</h2>
+            <div class="grafico-container">
+              <canvas id="grafico-categorias"></canvas>
+              <p id="grafico-vacio" class="grafico-vacio hidden">No hay suscripciones activas para mostrar</p>
+            </div>
+          </section>
+        </div>
       </main>
     </div>
 
@@ -338,6 +348,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
     <script src="script.js"></script>
   </body>
 </html>
