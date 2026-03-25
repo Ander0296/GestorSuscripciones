@@ -23,7 +23,7 @@ Entretenimiento, Música, Trabajo/Productividad, Educación, Salud, Gaming, Noti
 ### Quick wins
 1. ~~Logos/íconos de servicios populares~~ (HECHO - en feature/logos-servicios)
 2. ~~Ciclo de facturación flexible~~ (HECHO - en feature/ciclo-facturacion)
-3. Multi-moneda (USD, ARS, EUR)
+3. ~~Multi-moneda~~ (HECHO - en feature/multi-moneda)
 4. Recordatorios con Notification API
 5. Vista calendario de cobros
 6. Gráfico de gastos por categoría (Chart.js o similar)
@@ -61,6 +61,9 @@ Entretenimiento, Música, Trabajo/Productividad, Educación, Salud, Gaming, Noti
 - Ciclos de facturación: semanal (×4.33), mensual (×1), trimestral (÷3), semestral (÷6), anual (÷12)
 - Factor semanal 4.33 viene de 52 semanas ÷ 12 meses
 - Campo renombrado: costoMensual → costo (con backward compat para datos viejos en localStorage)
+- Multi-moneda visual (sin conversión): 9 monedas (COP, USD, EUR, ARS, MXN, BRL, CLP, PEN, GBP)
+- COP como moneda default (usuario es de Colombia)
+- Dashboard agrupa totales por moneda cuando hay mezcla
 
 ## Features implementadas
 - [x] Logos/íconos de servicios populares — catálogo de 23 servicios con SVG reales
@@ -70,6 +73,9 @@ Entretenimiento, Música, Trabajo/Productividad, Educación, Salud, Gaming, Noti
   - Dashboard normaliza todo a costo mensual para comparar
   - Badge de ciclo visible en la tabla junto al costo
   - Backward compatible con suscripciones guardadas sin ciclo (default: mensual)
+- [x] Multi-moneda visual — 9 monedas, sin conversión automática
+  - Dashboard agrupa totales por moneda cuando hay mezcla
+  - COP default, backward compatible (suscripciones viejas → USD)
 
 ## Sesiones de trabajo
-- **2026-03-24**: Análisis de competencia, definición de roadmap, implementación de logos SVG y ciclos de facturación
+- **2026-03-24**: Análisis de competencia, definición de roadmap, implementación de logos SVG, ciclos de facturación y multi-moneda
