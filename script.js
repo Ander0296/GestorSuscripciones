@@ -627,6 +627,10 @@ class UI {
     this.calMes = new Date().getMonth();
     this.calAnio = new Date().getFullYear();
 
+    /** Estado de la paginación */
+    this.paginaActual = 1;
+    this.itemsPorPagina = 10;
+
     // Cachear referencias al DOM usadas frecuentemente
     this.vistaAuth = document.getElementById("vista-auth");
     this.vistaApp = document.getElementById("vista-app");
@@ -876,8 +880,14 @@ class UI {
       return;
     }
 
+    // Paginación: calcular índices de slice
+    const totalPaginas = Math.ceil(lista.length / this.itemsPorPagina);
+    const inicio = (this.paginaActual - 1) * this.itemsPorPagina;
+    const fin = inicio + this.itemsPorPagina;
+    const listaPagina = lista.slice(inicio, fin);
+
     // Construir filas con data-label para la tabla responsive en móvil
-    const filas = lista
+    const filas = listaPagina
       .map(
         (s) => `
             <tr>
@@ -949,6 +959,54 @@ class UI {
           this._confirmarEliminar(btn.dataset.id),
         ),
       );
+
+    // Agregar controles de paginación si hay más de una página
+    if (totalPaginas > 1) {
+      this._renderizarControlesPaginacion(totalPaginas);
+    }
+  }
+
+  /**
+   * Genera y agrega al DOM los botones de Anterior/Siguiente
+   * e información sobre la página actual.
+   * @param {number} totalPaginas
+   */
+  _renderizarControlesPaginacion(totalPaginas) {
+    const contenedor = document.createElement("div");
+    contenedor.className = "paginacion";
+
+    const btnAnterior = `
+            <button class="btn-paginacion" id="pag-anterior" ${this.paginaActual === 1 ? "disabled" : ""}>
+                &laquo; Anterior
+            </button>`;
+
+    const info = `
+            <span class="info-paginacion">
+                Página <strong>${this.paginaActual}</strong> de <strong>${totalPaginas}</strong>
+            </span>`;
+
+    const btnSiguiente = `
+            <button class="btn-paginacion" id="pag-siguiente" ${this.paginaActual === totalPaginas ? "disabled" : ""}>
+                Siguiente &raquo;
+            </button>`;
+
+    contenedor.innerHTML = btnAnterior + info + btnSiguiente;
+    this.tablaWrapper.appendChild(contenedor);
+
+    // Bind de eventos para los botones de paginación
+    document.getElementById("pag-anterior")?.addEventListener("click", () => {
+      if (this.paginaActual > 1) {
+        this.paginaActual--;
+        this._actualizarVista(false);
+      }
+    });
+
+    document.getElementById("pag-siguiente")?.addEventListener("click", () => {
+      if (this.paginaActual < totalPaginas) {
+        this.paginaActual++;
+        this._actualizarVista(false);
+      }
+    });
   }
 
   /* ============================================================
@@ -1029,8 +1087,13 @@ class UI {
    * Lee los filtros activos, obtiene la lista filtrada de AppManager
    * y re-renderiza tanto el dashboard como la tabla.
    * Se invoca tras cualquier cambio de datos o de filtros.
+   * @param {boolean} resetPagina - Si es true, vuelve a la página 1.
    */
-  _actualizarVista() {
+  _actualizarVista(resetPagina = true) {
+    if (resetPagina) {
+      this.paginaActual = 1;
+    }
+
     const cat = document.getElementById("filtro-categoria").value;
     const est = document.getElementById("filtro-estado").value;
     const orden = document.getElementById("filtro-orden").value;
@@ -1054,6 +1117,13 @@ class UI {
             return 0;
         }
       });
+    }
+
+    // Ajustar página actual si después de un cambio de datos (ej. eliminación)
+    // la página actual queda fuera de rango.
+    const totalPaginas = Math.ceil(lista.length / this.itemsPorPagina);
+    if (this.paginaActual > totalPaginas && totalPaginas > 0) {
+      this.paginaActual = totalPaginas;
     }
 
     this.renderDashboard(); // siempre sobre el total, no sobre la lista filtrada
