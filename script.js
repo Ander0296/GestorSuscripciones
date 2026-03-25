@@ -23,7 +23,7 @@ const CATALOGO_SERVICIOS = {
   "disney+": {
     nombre: "Disney+",
     color: "#113CCF",
-    svg: "TEXTO:D+"
+    svg: "M18.97 11.2c-.36-1.46-1.24-2.63-2.44-3.33-.6-.35-1.26-.56-1.96-.65-.7-.09-1.42-.06-2.12.1-1.4.32-2.58 1.1-3.44 2.26-.86 1.16-1.26 2.5-1.18 3.92.08 1.42.6 2.68 1.56 3.72.96 1.04 2.18 1.7 3.58 1.9.7.1 1.4.06 2.08-.12 1.36-.36 2.46-1.14 3.28-2.32.1-.14.08-.26-.04-.36l-1.02-.78c-.14-.1-.26-.08-.36.06-.58.76-1.34 1.28-2.26 1.52-.46.12-.92.14-1.4.08-1-.14-1.84-.62-2.5-1.4-.66-.78-.98-1.7-1.02-2.72-.04-1.02.26-1.96.86-2.78.6-.82 1.4-1.36 2.4-1.58.5-.12 1-.12 1.5-.04.5.08.96.26 1.38.54.84.56 1.4 1.34 1.64 2.34H14.3c-.16 0-.26.1-.26.26v1.22c0 .16.1.26.26.26h5.64c.16 0 .26-.1.26-.26v-1.22c0-.16-.1-.26-.26-.26h-.04c.04-.12.06-.22.08-.34zM22.3 10.9h-1.1v-1.1c0-.12-.08-.2-.2-.2h-.8c-.12 0-.2.08-.2.2v1.1h-1.1c-.12 0-.2.08-.2.2v.8c0 .12.08.2.2.2h1.1v1.1c0 .12.08.2.2.2h.8c.12 0 .2-.08.2-.2v-1.1h1.1c.12 0 .2-.08.2-.2v-.8c0-.12-.08-.2-.2-.2z"
   },
   hbo: {
     nombre: "HBO Max",
@@ -73,12 +73,12 @@ const CATALOGO_SERVICIOS = {
   "microsoft 365": {
     nombre: "Microsoft 365",
     color: "#D83B01",
-    svg: "TEXTO:M"
+    svg: "M1 1h10.5v10.5H1zm11.5 0H23v10.5H12.5zM1 12.5h10.5V23H1zm11.5 0H23V23H12.5z"
   },
   "google one": {
     nombre: "Google One",
     color: "#4285F4",
-    svg: "TEXTO:G"
+    svg: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 10.55h-4.09v-2.24h4.09c-.07 2.58-.64 4.53-1.87 5.82-1.23 1.29-2.84 1.94-4.77 1.94-1.98 0-3.64-.69-4.96-2.07C3.72 14.63 3.06 12.91 3.06 12s.66-2.63 1.98-4c1.32-1.38 2.98-2.07 4.96-2.07 2.02 0 3.72.74 5.08 2.18l-1.58 1.52c-.96-1.04-2.12-1.56-3.5-1.56-1.38 0-2.56.5-3.52 1.5-.96 1-1.44 2.16-1.44 3.43s.48 2.42 1.44 3.42c.96 1 2.14 1.5 3.52 1.5 1.14 0 2.1-.32 2.88-.96.78-.64 1.26-1.48 1.42-2.52h-2.66v-2.24h4.09c.04.3.06.58.06.85z"
   },
   dropbox: {
     nombre: "Dropbox",
@@ -88,7 +88,7 @@ const CATALOGO_SERVICIOS = {
   icloud: {
     nombre: "iCloud",
     color: "#3693F3",
-    svg: "TEXTO:iC"
+    svg: "M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"
   },
   github: {
     nombre: "GitHub",
@@ -178,8 +178,7 @@ function renderLogo(nombre, size = 32) {
   if (servicio) {
     if (servicio.svg.startsWith("TEXTO:")) {
       const texto = servicio.svg.replace("TEXTO:", "");
-      const fontSize = size * 0.45;
-      return `<span class="service-logo" style="width:${size}px;height:${size}px;"><svg viewBox="0 0 24 24" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="${servicio.color}"/><text x="12" y="12" dominant-baseline="central" text-anchor="middle" fill="white" font-weight="700" font-size="${fontSize <= 10 ? 11 : 10}" font-family="system-ui,sans-serif">${texto}</text></svg></span>`;
+      return `<span class="service-logo" style="width:${size}px;height:${size}px;"><svg viewBox="0 0 24 24" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg"><rect width="24" height="24" rx="4" fill="${servicio.color}"/><text x="12" y="12" dominant-baseline="central" text-anchor="middle" fill="white" font-weight="700" font-size="11" font-family="system-ui,sans-serif">${texto}</text></svg></span>`;
     }
     return `<span class="service-logo" style="width:${size}px;height:${size}px;"><svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="${servicio.color}" xmlns="http://www.w3.org/2000/svg"><path d="${servicio.svg}"/></svg></span>`;
   }
