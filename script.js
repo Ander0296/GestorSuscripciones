@@ -119,9 +119,15 @@ const CATALOGO_SERVICIOS = {
 };
 
 const MONEDAS = {
+  COP: { simbolo: "CO$", nombre: "Peso colombiano" },
   USD: { simbolo: "US$", nombre: "Dólar estadounidense" },
+  EUR: { simbolo: "€", nombre: "Euro" },
   ARS: { simbolo: "AR$", nombre: "Peso argentino" },
-  EUR: { simbolo: "€", nombre: "Euro" }
+  MXN: { simbolo: "MX$", nombre: "Peso mexicano" },
+  BRL: { simbolo: "R$", nombre: "Real brasileño" },
+  CLP: { simbolo: "CL$", nombre: "Peso chileno" },
+  PEN: { simbolo: "S/", nombre: "Sol peruano" },
+  GBP: { simbolo: "£", nombre: "Libra esterlina" },
 };
 
 function buscarServicio(nombre) {
@@ -877,7 +883,7 @@ class UI {
     document.getElementById("modal-title").textContent = "Nueva Suscripción";
     this.formSub.reset();
     this._limpiarLogoPreview();
-    document.getElementById("sub-moneda").value = "USD";
+    document.getElementById("sub-moneda").value = "COP";
     document.getElementById("sub-ciclo").value = "mensual";
     document.querySelector('input[name="sub-estado"][value="activa"]').checked =
       true;
