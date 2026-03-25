@@ -513,6 +513,26 @@ class AppManager {
     return this.suscripciones.filter((s) => s.tieneCobroPendiente());
   }
 
+  /**
+   * Retorna suscripciones activas cuya fecha de cobro está dentro
+   * de los próximos `dias` días (incluyendo hoy).
+   * @param   {number}        dias
+   * @returns {Suscripcion[]}
+   */
+  getSuscripcionesProximas(dias) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const limite = new Date(hoy);
+    limite.setDate(limite.getDate() + dias);
+    limite.setHours(23, 59, 59, 999);
+
+    return this.suscripciones.filter((s) => {
+      if (!s.estaActiva() || !s.fechaCobro) return false;
+      const fecha = new Date(s.fechaCobro + "T00:00:00");
+      return fecha >= hoy && fecha <= limite;
+    });
+  }
+
   /* ============================================================
    *  SECCIÓN: Filtros
    * ============================================================ */
@@ -598,7 +618,20 @@ class UI {
     this.vistaApp.classList.remove("hidden");
     document.getElementById("header-username").textContent =
       `Bienvenido, ${this.app.usuarioActual.email}`;
+
+    // Restaurar config de días guardada
+    const diasGuardados = this._getConfigDias();
+    document.getElementById("config-dias-aviso").value = String(diasGuardados);
+
+    // Actualizar estado visual del botón de notificaciones
+    this._actualizarEstadoBtnNotif();
+
     this._actualizarVista();
+
+    // Auto-verificar cobros próximos si ya tenemos permiso
+    if ("Notification" in window && Notification.permission === "granted") {
+      this._verificarCobrosProximos();
+    }
   }
 
   /* ============================================================
@@ -913,6 +946,130 @@ class UI {
   }
 
   /* ============================================================
+   *  Notificaciones de cobros próximos
+   * ============================================================ */
+
+  /**
+   * Solicita permiso al navegador para mostrar notificaciones.
+   * @returns {Promise<string>} El estado del permiso: "granted", "denied" o "default"
+   */
+  async _pedirPermisoNotificaciones() {
+    if (!("Notification" in window)) {
+      alert("Tu navegador no soporta notificaciones de escritorio.");
+      return "denied";
+    }
+    const permiso = await Notification.requestPermission();
+    this._actualizarEstadoBtnNotif();
+    return permiso;
+  }
+
+  /**
+   * Verifica cobros próximos y crea una notificación del navegador por cada uno.
+   * Usa tag con el ID de la suscripción para evitar duplicados.
+   */
+  _verificarCobrosProximos() {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+    const dias = this._getConfigDias();
+    const proximas = this.app.getSuscripcionesProximas(dias);
+
+    if (proximas.length === 0) return;
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    proximas.forEach((s) => {
+      const fechaCobro = new Date(s.fechaCobro + "T00:00:00");
+      const diffMs = fechaCobro.getTime() - hoy.getTime();
+      const diasRestantes = Math.round(diffMs / (1000 * 60 * 60 * 24));
+
+      const monto = this._formatCurrency(s.costo, s.moneda);
+      let cuerpo;
+      if (diasRestantes === 0) {
+        cuerpo = `Tu suscripción de ${s.nombre} (${monto} ${s.moneda}) se cobra HOY`;
+      } else if (diasRestantes === 1) {
+        cuerpo = `Tu suscripción de ${s.nombre} (${monto} ${s.moneda}) se cobra mañana`;
+      } else {
+        cuerpo = `Tu suscripción de ${s.nombre} (${monto} ${s.moneda}) se cobra en ${diasRestantes} días`;
+      }
+
+      cuerpo += ` — ciclo ${s.ciclo}`;
+
+      new Notification("💳 Cobro próximo", {
+        body: cuerpo,
+        icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💳</text></svg>",
+        tag: `cobro-${s.id}`,
+      });
+    });
+
+    // Actualizar badge en el botón
+    this._actualizarBadgeNotif(proximas.length);
+  }
+
+  /**
+   * Guarda la preferencia de días de aviso en localStorage.
+   * @param {number} dias
+   */
+  _guardarConfigDias(dias) {
+    localStorage.setItem("notif-dias-aviso", String(dias));
+  }
+
+  /**
+   * Lee la preferencia de días de aviso desde localStorage. Default: 3.
+   * @returns {number}
+   */
+  _getConfigDias() {
+    const guardado = localStorage.getItem("notif-dias-aviso");
+    return guardado ? parseInt(guardado, 10) : 3;
+  }
+
+  /**
+   * Actualiza el estilo visual del botón de notificaciones según
+   * el estado del permiso del navegador.
+   */
+  _actualizarEstadoBtnNotif() {
+    const btn = document.getElementById("btn-notificaciones");
+    if (!btn) return;
+
+    btn.classList.remove("notif-active", "notif-denied");
+
+    if (!("Notification" in window)) {
+      btn.classList.add("notif-denied");
+      return;
+    }
+
+    switch (Notification.permission) {
+      case "granted":
+        btn.classList.add("notif-active");
+        break;
+      case "denied":
+        btn.classList.add("notif-denied");
+        break;
+      // "default" → sin clase extra (estilo normal)
+    }
+  }
+
+  /**
+   * Muestra u oculta un badge numérico en el botón de notificaciones
+   * indicando cuántos cobros próximos hay.
+   * @param {number} count
+   */
+  _actualizarBadgeNotif(count) {
+    const btn = document.getElementById("btn-notificaciones");
+    if (!btn) return;
+    // Remover badge previo si existe
+    const badgePrevio = btn.querySelector(".notif-badge");
+    if (badgePrevio) badgePrevio.remove();
+
+    if (count > 0) {
+      const badge = document.createElement("span");
+      badge.className = "notif-badge";
+      badge.textContent = count;
+      btn.appendChild(badge);
+    }
+  }
+
+  /* ============================================================
    *  Enlace de eventos
    * ============================================================ */
 
@@ -1034,6 +1191,20 @@ class UI {
     document
       .getElementById("filtro-estado")
       .addEventListener("change", () => this._actualizarVista());
+
+    /* ---- NOTIFICACIONES ---- */
+    document.getElementById("btn-notificaciones").addEventListener("click", async () => {
+      const permiso = await this._pedirPermisoNotificaciones();
+      if (permiso === "granted") {
+        this._verificarCobrosProximos();
+      }
+    });
+    document.getElementById("config-dias-aviso").addEventListener("change", (e) => {
+      this._guardarConfigDias(parseInt(e.target.value, 10));
+      if ("Notification" in window && Notification.permission === "granted") {
+        this._verificarCobrosProximos();
+      }
+    });
 
     /* ---- PREVIEW de logo en el modal ---- */
     document.getElementById("sub-nombre").addEventListener("input", (e) => {

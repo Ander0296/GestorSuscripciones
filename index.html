@@ -82,6 +82,18 @@
         </div>
         <div class="header-user">
           <span id="header-username">Bienvenido</span>
+          <div class="notif-config">
+            <button id="btn-notificaciones" class="btn btn-notif" title="Activar notificaciones de cobros próximos">
+              🔔
+            </button>
+            <select id="config-dias-aviso" class="select-dias" aria-label="Días de aviso antes del cobro">
+              <option value="1">1 día</option>
+              <option value="2">2 días</option>
+              <option value="3" selected>3 días</option>
+              <option value="5">5 días</option>
+              <option value="7">7 días</option>
+            </select>
+          </div>
           <button id="btn-logout" class="btn btn-outline-sm">
             Cerrar Sesión
           </button>

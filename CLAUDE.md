@@ -2,12 +2,14 @@
 
 ## Stack
 - HTML + CSS + JavaScript vanilla (sin frameworks)
-- Persistencia: LocalStorage
-- Arquitectura: POO (Usuario, Suscripcion, AppManager, UI)
-- Sin backend, sin build tools
+- Persistencia: Supabase (PostgreSQL) — migrado desde LocalStorage
+- Auth: Supabase Auth (email + password, confirmación por email)
+- Arquitectura: POO (Suscripcion, AppManager, UI) — clase Usuario eliminada (Supabase la maneja)
+- SDK: @supabase/supabase-js@2 (CDN)
+- Supabase URL: https://eubfyyhgslcgxarbwsop.supabase.co
 
 ## Estado actual
-- Auth: login/registro con hash djb2, sesión persistente en LocalStorage
+- Auth: email/password con Supabase Auth, confirmación por correo, sesión persistente
 - CRUD completo de suscripciones (crear, editar, eliminar)
 - Dashboard: suscripciones activas, gasto mensual, gasto anual proyectado, alertas de cobro pendiente en canceladas
 - Filtros: por categoría y estado
@@ -41,7 +43,7 @@ Entretenimiento, Música, Trabajo/Productividad, Educación, Salud, Gaming, Noti
 16. Vista compartida familia/hogar
 
 ### Avanzadas (cambio de arquitectura)
-17. Backend real (Firebase/Supabase)
+17. ~~Backend real (Firebase/Supabase)~~ (HECHO - en feature/base-datos)
 18. Detección por email (recibos Gmail)
 19. Integración bancaria (Plaid / Open Banking)
 
@@ -64,6 +66,16 @@ Entretenimiento, Música, Trabajo/Productividad, Educación, Salud, Gaming, Noti
 - Multi-moneda visual (sin conversión): 9 monedas (COP, USD, EUR, ARS, MXN, BRL, CLP, PEN, GBP)
 - COP como moneda default (usuario es de Colombia)
 - Dashboard agrupa totales por moneda cuando hay mezcla
+- Supabase elegido sobre Firebase/MySQL — PostgreSQL por debajo, SDK simple, sin servidor propio
+- Variable del cliente: `sbClient` (no `supabase`, colisiona con el SDK global)
+- Mapping snake_case (DB) ↔ camelCase (JS): fecha_cobro ↔ fechaCobro, created_at ↔ creadaEn
+- Registro detecta email duplicado via `identities.length === 0`
+
+## Supabase
+- Tabla: `suscripciones` (id uuid, user_id uuid, nombre, categoria, costo float8, moneda default COP, ciclo default mensual, fecha_cobro date, estado, created_at timestamptz)
+- RLS: 4 policies (SELECT, INSERT, UPDATE, DELETE) con `auth.uid() = user_id`
+- Auth: email + password con confirmación por correo
+- Métodos async/await en AppManager y UI
 
 ## Features implementadas
 - [x] Logos/íconos de servicios populares — catálogo de 23 servicios con SVG reales
@@ -76,6 +88,12 @@ Entretenimiento, Música, Trabajo/Productividad, Educación, Salud, Gaming, Noti
 - [x] Multi-moneda visual — 9 monedas, sin conversión automática
   - Dashboard agrupa totales por moneda cuando hay mezcla
   - COP default, backward compatible (suscripciones viejas → USD)
+- [x] Migración a Supabase — auth por email + base de datos PostgreSQL
+  - Clase Usuario eliminada (Supabase maneja auth)
+  - AppManager reescrito: todos los métodos async/await
+  - RLS para seguridad por usuario
+  - Detección de email duplicado en registro
+  - Mensaje de confirmación por correo al registrarse
 
 ## Sesiones de trabajo
-- **2026-03-24**: Análisis de competencia, definición de roadmap, implementación de logos SVG, ciclos de facturación y multi-moneda
+- **2026-03-24**: Análisis de competencia, definición de roadmap, implementación de logos SVG, ciclos de facturación, multi-moneda y migración a Supabase
