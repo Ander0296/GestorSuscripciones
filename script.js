@@ -430,27 +430,54 @@ class AppManager {
   }
 
   async editarSuscripcion(id, datos) {
+    const nuevoCosto = parseFloat(datos.costo) || 0;
+    const nuevaMoneda = datos.moneda || "COP";
+
+    // Detectar cambio de precio ANTES de actualizar
+    const original = this.suscripciones.find(s => s.id === id);
+    let cambioPrecio = null;
+    if (original && original.costo !== nuevoCosto) {
+      cambioPrecio = {
+        precioAnterior: original.costo,
+        precioNuevo: nuevoCosto,
+        moneda: nuevaMoneda,
+        nombre: datos.nombre || original.nombre,
+      };
+    }
+
     const { error } = await sbClient.from("suscripciones").update({
       nombre: datos.nombre,
       categoria: datos.categoria,
-      costo: parseFloat(datos.costo) || 0,
-      moneda: datos.moneda || "COP",
+      costo: nuevoCosto,
+      moneda: nuevaMoneda,
       ciclo: datos.ciclo || "mensual",
       fecha_cobro: datos.fechaCobro,
       estado: datos.estado,
     }).eq("id", id);
     if (error) return false;
-    const idx = this.suscripciones.findIndex(s => s.id === id);
-    if (idx !== -1) {
-      const original = this.suscripciones[idx];
-      this.suscripciones[idx] = new Suscripcion({
-        ...original.toJSON(),
-        ...datos,
-        id: original.id,
-        creadaEn: original.creadaEn,
+
+    // Guardar cambio de precio en historial
+    if (cambioPrecio) {
+      await sbClient.from("historial_precios").insert({
+        suscripcion_id: id,
+        user_id: this.usuarioActual.id,
+        precio_anterior: cambioPrecio.precioAnterior,
+        precio_nuevo: cambioPrecio.precioNuevo,
+        moneda: cambioPrecio.moneda,
       });
     }
-    return true;
+
+    const idx = this.suscripciones.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      const orig = this.suscripciones[idx];
+      this.suscripciones[idx] = new Suscripcion({
+        ...orig.toJSON(),
+        ...datos,
+        id: orig.id,
+        creadaEn: orig.creadaEn,
+      });
+    }
+    return cambioPrecio;
   }
 
   async eliminarSuscripcion(id) {
@@ -1242,6 +1269,29 @@ class UI {
   }
 
   /* ============================================================
+   *  Toast de notificación en la app principal
+   * ============================================================ */
+
+  /**
+   * Muestra un mensaje toast temporal en la esquina inferior derecha.
+   * @param {string} mensaje - Texto a mostrar
+   * @param {number} [duracion=4000] - Milisegundos antes de desaparecer
+   */
+  _mostrarToast(mensaje, duracion = 4000) {
+    const toast = document.createElement("div");
+    toast.className = "toast-notificacion";
+    toast.textContent = mensaje;
+    document.body.appendChild(toast);
+    // Forzar reflow para que la animación de entrada funcione
+    toast.offsetHeight;
+    toast.classList.add("toast-visible");
+    setTimeout(() => {
+      toast.classList.remove("toast-visible");
+      toast.addEventListener("transitionend", () => toast.remove());
+    }, duracion);
+  }
+
+  /* ============================================================
    *  Utilidades de formato y seguridad
    * ============================================================ */
 
@@ -1511,7 +1561,15 @@ class UI {
       };
 
       if (this.editandoId) {
-        await this.app.editarSuscripcion(this.editandoId, datos);
+        const resultado = await this.app.editarSuscripcion(this.editandoId, datos);
+        if (resultado && typeof resultado === "object") {
+          const moneda = resultado.moneda;
+          const anterior = this._formatCurrency(resultado.precioAnterior, moneda);
+          const nuevo = this._formatCurrency(resultado.precioNuevo, moneda);
+          this._mostrarToast(
+            `El precio de ${resultado.nombre} cambió de ${anterior} a ${nuevo}`
+          );
+        }
       } else {
         await this.app.agregarSuscripcion(datos);
       }

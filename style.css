@@ -1246,6 +1246,43 @@ body {
   color: var(--text-dark);
 }
 
+/* ============================================================
+   TOAST DE NOTIFICACIÓN
+   ============================================================ */
+.toast-notificacion {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--text-dark);
+  color: white;
+  padding: 14px 22px;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-lg);
+  z-index: 2000;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  max-width: 420px;
+  line-height: 1.4;
+  border-left: 4px solid var(--warning);
+}
+
+.toast-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (max-width: 640px) {
+  .toast-notificacion {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    max-width: none;
+  }
+}
+
 /* Móvil pequeño */
 @media (max-width: 400px) {
   .dashboard-cards {
