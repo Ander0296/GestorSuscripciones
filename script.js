@@ -1,5 +1,9 @@
 "use strict";
 
+const SUPABASE_URL = "https://eubfyyhgslcgxarbwsop.supabase.co";
+const SUPABASE_KEY = "sb_publishable_88nDUwzhWNUW5pdrPbxCAA_KTkXtmT9";
+const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 const CATALOGO_SERVICIOS = {
   netflix: {
     nombre: "Netflix",
@@ -178,47 +182,10 @@ function renderLogo(nombre, size = 32) {
  *  Arquitectura: POO pura — sin frameworks ni librerías externas.
  *
  *  Clases:
- *    - Usuario          → modelo de datos del usuario autenticado
  *    - Suscripcion      → modelo de datos + cálculos de una suscripción
  *    - AppManager       → lógica de negocio: auth, CRUD, cálculos, filtros
  *    - UI               → manipulación del DOM y enlace de eventos
  * ============================================================ */
-
-/* ============================================================
- *  CLASE: Usuario
- *  Representa a un usuario registrado en el sistema.
- * ============================================================ */
-class Usuario {
-  /**
-   * @param {string} username - Nombre de usuario único (case-insensitive al buscar)
-   * @param {string} password - Contraseña ya transformada por _hashPassword
-   */
-  constructor(username, password) {
-    this.username = username;
-    this.password = password;
-    this.creadoEn = new Date().toISOString();
-  }
-
-  /** Serializa la instancia a objeto plano para JSON.stringify */
-  toJSON() {
-    return {
-      username: this.username,
-      password: this.password,
-      creadoEn: this.creadoEn,
-    };
-  }
-
-  /**
-   * Reconstruye un Usuario desde un objeto plano (reversión de toJSON).
-   * @param   {object}  obj
-   * @returns {Usuario}
-   */
-  static fromJSON(obj) {
-    const u = new Usuario(obj.username, obj.password);
-    u.creadoEn = obj.creadoEn;
-    return u;
-  }
-}
 
 /* ============================================================
  *  CLASE: Suscripcion
@@ -344,243 +311,143 @@ class Suscripcion {
  * ============================================================ */
 class AppManager {
   constructor() {
-    /** Clave del directorio global de usuarios */
-    this.STORAGE_KEY_USERS = "gsub_users";
-    /** Clave de la sesión activa */
-    this.STORAGE_KEY_SESSION = "gsub_session";
-    /** Prefijo para las listas de suscripciones (aisladas por usuario) */
-    this.STORAGE_KEY_PREFIX = "gsub_data_";
-
-    /** @type {Usuario|null} */
     this.usuarioActual = null;
-    /** @type {Suscripcion[]} */
     this.suscripciones = [];
   }
 
-  /* ============================================================
-   *  SECCIÓN: Utilidades internas
-   * ============================================================ */
-
-  /**
-   * Hash determinista simple (djb2 modificado).
-   * Convierte la contraseña en texto a un número hexadecimal de 32 bits.
-   * ⚠ No es seguro para producción — adecuado para datos locales sin backend.
-   * @param   {string} password
-   * @returns {string} Hash en hexadecimal
-   */
-  _hashPassword(password) {
-    let hash = 5381;
-    for (let i = 0; i < password.length; i++) {
-      // hash * 33 + charCode  (operación estándar djb2)
-      hash = (hash << 5) + hash + password.charCodeAt(i);
-      hash = hash & hash; // Truncar a entero de 32 bits con signo
+  async registrar(email, password) {
+    if (!email.trim() || !password.trim()) {
+      return { ok: false, mensaje: "Email y contraseña son obligatorios." };
     }
-    return Math.abs(hash).toString(16);
+    if (password.trim().length < 6) {
+      return { ok: false, mensaje: "La contraseña debe tener al menos 6 caracteres." };
+    }
+    const { data, error } = await sbClient.auth.signUp({
+      email: email.trim(),
+      password: password.trim(),
+    });
+    if (error) {
+      if (error.message.includes("already registered") || error.message.includes("already been registered")) {
+        return { ok: false, mensaje: "Este correo ya tiene una cuenta registrada." };
+      }
+      return { ok: false, mensaje: error.message };
+    }
+    if (data?.user?.identities?.length === 0) {
+      return { ok: false, mensaje: "Este correo ya tiene una cuenta registrada." };
+    }
+    return { ok: true, mensaje: "Registro exitoso. Confirmá tu cuenta en el correo." };
   }
 
-  /**
-   * Clave de LocalStorage para el usuario actualmente autenticado.
-   * Cada usuario tiene su propio espacio aislado de datos.
-   * @returns {string}  "gsub_data_<username>"
-   */
-  _getStorageKey() {
-    return `${this.STORAGE_KEY_PREFIX}${this.usuarioActual.username}`;
-  }
-
-  /**
-   * Persiste el array de suscripciones del usuario actual en LocalStorage.
-   * Llamado automáticamente tras cada operación de escritura (CRUD).
-   */
-  _guardarEnStorage() {
-    const datos = this.suscripciones.map((s) => s.toJSON());
-    localStorage.setItem(this._getStorageKey(), JSON.stringify(datos));
-  }
-
-  /**
-   * Lee y reconstruye las suscripciones del usuario actual desde LocalStorage.
-   * Si no existe la clave, inicializa con un array vacío.
-   */
-  _cargarDesdeStorage() {
-    const raw = localStorage.getItem(this._getStorageKey());
-    if (raw) {
-      this.suscripciones = JSON.parse(raw).map((obj) =>
-        Suscripcion.fromJSON(obj),
-      );
-    } else {
-      this.suscripciones = [];
+  async login(email, password) {
+    if (!email.trim() || !password.trim()) {
+      return { ok: false, mensaje: "Completá todos los campos." };
     }
-  }
-
-  /**
-   * Lee el array de usuarios del directorio global de LocalStorage.
-   * @returns {object[]}
-   */
-  _getUsuarios() {
-    const raw = localStorage.getItem(this.STORAGE_KEY_USERS);
-    return raw ? JSON.parse(raw) : [];
-  }
-
-  /* ============================================================
-   *  SECCIÓN: Autenticación
-   * ============================================================ */
-
-  /**
-   * Registra un nuevo usuario si el username no está en uso.
-   * Valida longitud mínima de usuario (3) y contraseña (4).
-   *
-   * @param   {string} username
-   * @param   {string} password
-   * @returns {{ ok: boolean, mensaje: string }}
-   */
-  registrar(username, password) {
-    const user = username.trim();
-    const pass = password.trim();
-
-    if (!user || !pass) {
-      return { ok: false, mensaje: "Usuario y contraseña son obligatorios." };
+    const { data, error } = await sbClient.auth.signInWithPassword({
+      email: email.trim(),
+      password: password.trim(),
+    });
+    if (error) {
+      return { ok: false, mensaje: "Email o contraseña incorrectos." };
     }
-    if (user.length < 3) {
-      return {
-        ok: false,
-        mensaje: "El usuario debe tener al menos 3 caracteres.",
-      };
-    }
-    if (pass.length < 4) {
-      return {
-        ok: false,
-        mensaje: "La contraseña debe tener al menos 4 caracteres.",
-      };
-    }
-
-    const usuarios = this._getUsuarios();
-    const existe = usuarios.some(
-      (u) => u.username.toLowerCase() === user.toLowerCase(),
-    );
-
-    if (existe) {
-      return { ok: false, mensaje: "Ese nombre de usuario ya existe." };
-    }
-
-    const nuevoUsuario = new Usuario(user, this._hashPassword(pass));
-    usuarios.push(nuevoUsuario.toJSON());
-    localStorage.setItem(this.STORAGE_KEY_USERS, JSON.stringify(usuarios));
-
-    return { ok: true, mensaje: "Registro exitoso." };
-  }
-
-  /**
-   * Verifica credenciales e inicia sesión si son correctas.
-   * Persiste el username en LocalStorage para restauración de sesión.
-   *
-   * @param   {string} username
-   * @param   {string} password
-   * @returns {{ ok: boolean, mensaje: string }}
-   */
-  login(username, password) {
-    if (!username.trim() || !password.trim()) {
-      return { ok: false, mensaje: "Completa todos los campos." };
-    }
-
-    const usuarios = this._getUsuarios();
-    const hashIngresado = this._hashPassword(password);
-    const encontrado = usuarios.find(
-      (u) =>
-        u.username.toLowerCase() === username.trim().toLowerCase() &&
-        u.password === hashIngresado,
-    );
-
-    if (!encontrado) {
-      return { ok: false, mensaje: "Usuario o contraseña incorrectos." };
-    }
-
-    this.usuarioActual = Usuario.fromJSON(encontrado);
-    localStorage.setItem(this.STORAGE_KEY_SESSION, this.usuarioActual.username);
-    this._cargarDesdeStorage();
-
+    this.usuarioActual = data.user;
+    await this._cargarSuscripciones();
     return { ok: true, mensaje: "Bienvenido." };
   }
 
-  /**
-   * Cierra la sesión del usuario actual.
-   * Limpia el estado en memoria y elimina la clave de sesión.
-   * Los datos de suscripciones permanecen en LocalStorage para el próximo login.
-   */
-  logout() {
+  async logout() {
+    await sbClient.auth.signOut();
     this.usuarioActual = null;
     this.suscripciones = [];
-    localStorage.removeItem(this.STORAGE_KEY_SESSION);
   }
 
-  /**
-   * Intenta restaurar una sesión previa guardada en LocalStorage.
-   * Llamado durante la inicialización de la app (UI.init).
-   *
-   * @returns {boolean}  true si la sesión fue restaurada exitosamente
-   */
-  restaurarSesion() {
-    const username = localStorage.getItem(this.STORAGE_KEY_SESSION);
-    if (!username) return false;
-
-    const usuarios = this._getUsuarios();
-    const encontrado = usuarios.find((u) => u.username === username);
-    if (!encontrado) return false;
-
-    this.usuarioActual = Usuario.fromJSON(encontrado);
-    this._cargarDesdeStorage();
+  async restaurarSesion() {
+    const { data: { session } } = await sbClient.auth.getSession();
+    if (!session) return false;
+    this.usuarioActual = session.user;
+    await this._cargarSuscripciones();
     return true;
   }
 
-  /* ============================================================
-   *  SECCIÓN: CRUD de Suscripciones
-   * ============================================================ */
-
-  /**
-   * Crea y agrega una nueva Suscripcion a la lista del usuario.
-   * @param   {object}      datos  - Campos del formulario
-   * @returns {Suscripcion}        - La instancia creada
-   */
-  agregarSuscripcion(datos) {
-    const nueva = new Suscripcion(datos);
-    this.suscripciones.push(nueva);
-    this._guardarEnStorage();
-    return nueva;
+  async _cargarSuscripciones() {
+    const { data, error } = await sbClient
+      .from("suscripciones")
+      .select("*")
+      .eq("user_id", this.usuarioActual.id);
+    if (error) {
+      this.suscripciones = [];
+      return;
+    }
+    this.suscripciones = data.map(row => new Suscripcion({
+      id: row.id,
+      nombre: row.nombre,
+      categoria: row.categoria,
+      costo: row.costo,
+      moneda: row.moneda,
+      ciclo: row.ciclo,
+      fechaCobro: row.fecha_cobro,
+      estado: row.estado,
+      creadaEn: row.created_at,
+    }));
   }
 
-  /**
-   * Actualiza los campos de una Suscripcion existente por ID.
-   * Preserva el ID original y la fecha de creación.
-   *
-   * @param   {string}  id
-   * @param   {object}  datos  - Nuevos valores del formulario
-   * @returns {boolean}        - false si el ID no existe
-   */
-  editarSuscripcion(id, datos) {
-    const idx = this.suscripciones.findIndex((s) => s.id === id);
-    if (idx === -1) return false;
+  async agregarSuscripcion(datos) {
+    const { data, error } = await sbClient.from("suscripciones").insert({
+      user_id: this.usuarioActual.id,
+      nombre: datos.nombre,
+      categoria: datos.categoria,
+      costo: parseFloat(datos.costo) || 0,
+      moneda: datos.moneda || "COP",
+      ciclo: datos.ciclo || "mensual",
+      fecha_cobro: datos.fechaCobro,
+      estado: datos.estado || "activa",
+    }).select().single();
+    if (!error && data) {
+      const nueva = new Suscripcion({
+        id: data.id,
+        nombre: data.nombre,
+        categoria: data.categoria,
+        costo: data.costo,
+        moneda: data.moneda,
+        ciclo: data.ciclo,
+        fechaCobro: data.fecha_cobro,
+        estado: data.estado,
+        creadaEn: data.created_at,
+      });
+      this.suscripciones.push(nueva);
+      return nueva;
+    }
+    return null;
+  }
 
-    const original = this.suscripciones[idx];
-    this.suscripciones[idx] = new Suscripcion({
-      ...original.toJSON(), // base: datos previos
-      ...datos, // sobreescribe con los nuevos
-      id: original.id, // el ID nunca cambia
-      creadaEn: original.creadaEn, // la fecha de creación tampoco
-    });
-
-    this._guardarEnStorage();
+  async editarSuscripcion(id, datos) {
+    const { error } = await sbClient.from("suscripciones").update({
+      nombre: datos.nombre,
+      categoria: datos.categoria,
+      costo: parseFloat(datos.costo) || 0,
+      moneda: datos.moneda || "COP",
+      ciclo: datos.ciclo || "mensual",
+      fecha_cobro: datos.fechaCobro,
+      estado: datos.estado,
+    }).eq("id", id);
+    if (error) return false;
+    const idx = this.suscripciones.findIndex(s => s.id === id);
+    if (idx !== -1) {
+      const original = this.suscripciones[idx];
+      this.suscripciones[idx] = new Suscripcion({
+        ...original.toJSON(),
+        ...datos,
+        id: original.id,
+        creadaEn: original.creadaEn,
+      });
+    }
     return true;
   }
 
-  /**
-   * Elimina una Suscripcion por ID.
-   * @param   {string}  id
-   * @returns {boolean}  false si el ID no existe
-   */
-  eliminarSuscripcion(id) {
-    const idx = this.suscripciones.findIndex((s) => s.id === id);
-    if (idx === -1) return false;
-
-    this.suscripciones.splice(idx, 1);
-    this._guardarEnStorage();
+  async eliminarSuscripcion(id) {
+    const { error } = await sbClient.from("suscripciones").delete().eq("id", id);
+    if (error) return false;
+    const idx = this.suscripciones.findIndex(s => s.id === id);
+    if (idx !== -1) this.suscripciones.splice(idx, 1);
     return true;
   }
 
@@ -703,10 +570,10 @@ class UI {
    *  2. Si hay sesión guardada, muestra la app directamente.
    *     Si no, muestra el formulario de autenticación.
    */
-  init() {
+  async init() {
     this._bindEventos();
 
-    if (this.app.restaurarSesion()) {
+    if (await this.app.restaurarSesion()) {
       this._mostrarVistaApp();
     } else {
       this._mostrarVistaAuth();
@@ -730,7 +597,7 @@ class UI {
     this.vistaAuth.classList.add("hidden");
     this.vistaApp.classList.remove("hidden");
     document.getElementById("header-username").textContent =
-      `Bienvenido, ${this.app.usuarioActual.username}`;
+      `Bienvenido, ${this.app.usuarioActual.email}`;
     this._actualizarVista();
   }
 
@@ -970,14 +837,14 @@ class UI {
    * Si el usuario acepta, delega en AppManager y refresca la vista.
    * @param {string} id
    */
-  _confirmarEliminar(id) {
+  async _confirmarEliminar(id) {
     const sub = this.app.getSuscripcion(id);
     if (!sub) return;
 
     if (
       confirm(`¿Eliminar "${sub.nombre}"?\nEsta acción no se puede deshacer.`)
     ) {
-      this.app.eliminarSuscripcion(id);
+      await this.app.eliminarSuscripcion(id);
       this._actualizarVista();
     }
   }
@@ -1031,6 +898,18 @@ class UI {
     const el = document.getElementById("auth-error");
     el.textContent = "";
     el.classList.add("hidden");
+    el.style.background = "";
+    el.style.color = "";
+    el.style.borderColor = "";
+  }
+
+  _mostrarExito(mensaje) {
+    const el = document.getElementById("auth-error");
+    el.textContent = mensaje;
+    el.classList.remove("hidden");
+    el.style.background = "var(--success-light)";
+    el.style.color = "var(--success)";
+    el.style.borderColor = "#bbf7d0";
   }
 
   /* ============================================================
@@ -1064,26 +943,25 @@ class UI {
     });
 
     /* ---- FORMULARIO de Auth (Login / Registro) ---- */
-    this.formAuth.addEventListener("submit", (e) => {
+    this.formAuth.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const username = document.getElementById("auth-username").value.trim();
+      const email = document.getElementById("auth-email").value.trim();
       const password = document.getElementById("auth-password").value;
       const esLogin =
         document.querySelector(".tab-btn.active").dataset.tab === "login";
 
       if (esLogin) {
-        const resultado = this.app.login(username, password);
+        const resultado = await this.app.login(email, password);
         if (resultado.ok) {
           this._mostrarVistaApp();
         } else {
           this._mostrarError(resultado.mensaje);
         }
       } else {
-        const resultado = this.app.registrar(username, password);
+        const resultado = await this.app.registrar(email, password);
         if (resultado.ok) {
-          // Login automático tras registro exitoso
-          this.app.login(username, password);
-          this._mostrarVistaApp();
+          document.querySelector('.tab-btn[data-tab="login"]').click();
+          this._mostrarExito("Registro exitoso. Confirmá tu cuenta en el correo antes de iniciar sesión.");
         } else {
           this._mostrarError(resultado.mensaje);
         }
@@ -1091,8 +969,8 @@ class UI {
     });
 
     /* ---- BOTÓN Cerrar Sesión ---- */
-    document.getElementById("btn-logout").addEventListener("click", () => {
-      this.app.logout();
+    document.getElementById("btn-logout").addEventListener("click", async () => {
+      await this.app.logout();
       this._mostrarVistaAuth();
     });
 
@@ -1102,7 +980,7 @@ class UI {
     });
 
     /* ---- FORMULARIO de Suscripción (Crear / Editar) ---- */
-    this.formSub.addEventListener("submit", (e) => {
+    this.formSub.addEventListener("submit", async (e) => {
       e.preventDefault();
 
       const datos = {
@@ -1117,9 +995,9 @@ class UI {
       };
 
       if (this.editandoId) {
-        this.app.editarSuscripcion(this.editandoId, datos);
+        await this.app.editarSuscripcion(this.editandoId, datos);
       } else {
-        this.app.agregarSuscripcion(datos);
+        await this.app.agregarSuscripcion(datos);
       }
 
       this._cerrarModal();

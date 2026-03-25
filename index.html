@@ -39,12 +39,12 @@
 
         <form id="form-auth" class="auth-form" novalidate>
           <div class="form-group">
-            <label for="auth-username">Usuario</label>
+            <label for="auth-email">Email</label>
             <input
-              type="text"
-              id="auth-username"
-              placeholder="Tu nombre de usuario"
-              autocomplete="username"
+              type="email"
+              id="auth-email"
+              placeholder="tu@email.com"
+              autocomplete="email"
               required
             />
           </div>
@@ -293,6 +293,7 @@
       </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="script.js"></script>
   </body>
 </html>
