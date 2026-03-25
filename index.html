@@ -7,9 +7,9 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body>
-    <!-- ======================================================
+    <!-- =====================================================
          VISTA: Autenticación (Login / Registro)
-         ====================================================== -->
+         ===================================================== -->
     <div id="vista-auth" class="vista">
       <div class="auth-container">
         <div class="auth-logo">
@@ -83,10 +83,18 @@
         <div class="header-user">
           <span id="header-username">Bienvenido</span>
           <div class="notif-config">
-            <button id="btn-notificaciones" class="btn btn-notif" title="Activar notificaciones de cobros próximos">
+            <button
+              id="btn-notificaciones"
+              class="btn btn-notif"
+              title="Activar notificaciones de cobros próximos"
+            >
               🔔
             </button>
-            <select id="config-dias-aviso" class="select-dias" aria-label="Días de aviso antes del cobro">
+            <select
+              id="config-dias-aviso"
+              class="select-dias"
+              aria-label="Días de aviso antes del cobro"
+            >
               <option value="1">1 día</option>
               <option value="2">2 días</option>
               <option value="3" selected>3 días</option>
@@ -199,9 +207,13 @@
           <section class="calendario-section" aria-label="Calendario de cobros">
             <h2 class="section-title">Calendario de Cobros</h2>
             <div class="calendario-controles">
-              <button id="cal-anterior" class="btn btn-outline-sm">← Anterior</button>
+              <button id="cal-anterior" class="btn btn-outline-sm">
+                ← Anterior
+              </button>
               <h3 id="cal-mes-titulo" class="cal-mes-titulo">Marzo 2026</h3>
-              <button id="cal-siguiente" class="btn btn-outline-sm">Siguiente →</button>
+              <button id="cal-siguiente" class="btn btn-outline-sm">
+                Siguiente →
+              </button>
             </div>
             <div class="calendario-grid">
               <div class="cal-header">Lun</div>
@@ -219,7 +231,9 @@
             <h2 class="section-title">Gastos por Categoría</h2>
             <div class="grafico-container">
               <canvas id="grafico-categorias"></canvas>
-              <p id="grafico-vacio" class="grafico-vacio hidden">No hay suscripciones activas para mostrar</p>
+              <p id="grafico-vacio" class="grafico-vacio hidden">
+                No hay suscripciones activas para mostrar
+              </p>
             </div>
           </section>
         </div>
