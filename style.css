@@ -427,6 +427,127 @@ body {
 
 
 /* ============================================================
+   CALENDARIO DE COBROS
+   ============================================================ */
+.calendario-section {
+    margin-bottom: 2rem;
+}
+
+.calendario-controles {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.cal-mes-titulo {
+    font-size: 1.25rem;
+    font-weight: 600;
+    min-width: 180px;
+    text-align: center;
+    margin: 0;
+}
+
+/* Calendar Grid */
+.calendario-grid,
+.calendario-cuerpo {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.cal-header {
+    padding: 0.5rem;
+    text-align: center;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: #64748b;
+    background: #f1f5f9;
+    border-radius: 4px;
+}
+
+.cal-dia {
+    min-height: 80px;
+    padding: 0.4rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 6px;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
+}
+
+.cal-dia-numero {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.25rem;
+}
+
+.cal-dia.cal-hoy {
+    border-color: #6366f1;
+    border-width: 2px;
+    background: #eef2ff;
+}
+
+.cal-dia.cal-hoy .cal-dia-numero {
+    color: #6366f1;
+    font-weight: 700;
+}
+
+.cal-dia.cal-con-cobro {
+    background: #fefce8;
+}
+
+.cal-dia-vacio {
+    min-height: 80px;
+    background: #f8fafc;
+    border-radius: 6px;
+}
+
+/* Cobro chips inside calendar days */
+.cal-cobro-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 2px 4px;
+    margin-bottom: 2px;
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    line-height: 1.2;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.cal-cobro-chip .chip-nombre {
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cal-cobro-chip .chip-monto {
+    color: #64748b;
+    font-size: 0.6rem;
+    flex-shrink: 0;
+}
+
+/* Calendar navigation buttons — override white color for non-header context */
+.calendario-controles .btn-outline-sm {
+    color: var(--text-mid);
+    border-color: var(--border);
+}
+
+.calendario-controles .btn-outline-sm:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
+}
+
+
+/* ============================================================
    CONTROLES — Filtros y botón Nueva Suscripción
    ============================================================ */
 .controles {
@@ -883,6 +1004,38 @@ body {
     .brand-name { display: none; }
 
     .select-dias { display: none; }
+
+    /* Calendario responsive */
+    .cal-dia {
+        min-height: 40px;
+        padding: 0.2rem;
+    }
+
+    .cal-dia-numero {
+        font-size: 0.7rem;
+    }
+
+    .cal-cobro-chip {
+        padding: 1px 2px;
+        font-size: 0.55rem;
+    }
+
+    .cal-cobro-chip .chip-nombre {
+        display: none;
+    }
+
+    .cal-cobro-chip .chip-monto {
+        font-size: 0.55rem;
+    }
+
+    .calendario-controles {
+        gap: 0.5rem;
+    }
+
+    .cal-mes-titulo {
+        font-size: 1rem;
+        min-width: 140px;
+    }
 
     /* Tabla responsive: se convierte en tarjetas */
     .tabla-suscripciones thead { display: none; }

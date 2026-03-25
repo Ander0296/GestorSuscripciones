@@ -168,6 +168,18 @@
               <option value="activa">Activas</option>
               <option value="cancelada">Canceladas</option>
             </select>
+            <select
+              id="filtro-orden"
+              class="select-filtro"
+              aria-label="Ordenar por"
+            >
+              <option value="">Orden de inserción</option>
+              <option value="nombre">Alfabético (A-Z)</option>
+              <option value="categoria">Categoría</option>
+              <option value="costo-mayor">Costo mayor a menor</option>
+              <option value="costo-menor">Costo menor a mayor</option>
+              <option value="cobro">Próximo cobro</option>
+            </select>
           </div>
           <button id="btn-nueva" class="btn btn-primary">
             + Nueva Suscripción
@@ -180,6 +192,26 @@
           <div id="tabla-wrapper">
             <!-- Contenido renderizado dinámicamente por UI.renderTabla() -->
           </div>
+        </section>
+
+        <!-- Calendario de cobros -->
+        <section class="calendario-section" aria-label="Calendario de cobros">
+          <h2 class="section-title">Calendario de Cobros</h2>
+          <div class="calendario-controles">
+            <button id="cal-anterior" class="btn btn-outline-sm">← Anterior</button>
+            <h3 id="cal-mes-titulo" class="cal-mes-titulo">Marzo 2026</h3>
+            <button id="cal-siguiente" class="btn btn-outline-sm">Siguiente →</button>
+          </div>
+          <div class="calendario-grid">
+            <div class="cal-header">Lun</div>
+            <div class="cal-header">Mar</div>
+            <div class="cal-header">Mié</div>
+            <div class="cal-header">Jue</div>
+            <div class="cal-header">Vie</div>
+            <div class="cal-header">Sáb</div>
+            <div class="cal-header">Dom</div>
+          </div>
+          <div id="cal-cuerpo" class="calendario-cuerpo"></div>
         </section>
       </main>
     </div>

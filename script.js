@@ -552,6 +552,28 @@ class AppManager {
       return matchCat && matchEst;
     });
   }
+
+  /**
+   * Retorna un Map donde las claves son días del mes (1-31) y los valores
+   * son arrays de Suscripcion activas cuya fechaCobro cae en ese día.
+   * @param   {number} anio - Año (ej. 2026)
+   * @param   {number} mes  - Mes 0-indexed (0=Enero, 11=Diciembre)
+   * @returns {Map<number, Suscripcion[]>}
+   */
+  getSuscripcionesPorDia(anio, mes) {
+    const mapa = new Map();
+    this.suscripciones
+      .filter(s => s.estaActiva() && s.fechaCobro)
+      .forEach(s => {
+        const fecha = new Date(s.fechaCobro + "T00:00:00");
+        if (fecha.getFullYear() === anio && fecha.getMonth() === mes) {
+          const dia = fecha.getDate();
+          if (!mapa.has(dia)) mapa.set(dia, []);
+          mapa.get(dia).push(s);
+        }
+      });
+    return mapa;
+  }
 }
 
 /* ============================================================
@@ -570,6 +592,10 @@ class UI {
     this.app = appManager;
     /** ID de la suscripción en edición; null en modo "crear" */
     this.editandoId = null;
+
+    /** Estado del calendario: mes y año actuales */
+    this.calMes = new Date().getMonth();
+    this.calAnio = new Date().getFullYear();
 
     // Cachear referencias al DOM usadas frecuentemente
     this.vistaAuth = document.getElementById("vista-auth");
@@ -855,10 +881,121 @@ class UI {
   _actualizarVista() {
     const cat = document.getElementById("filtro-categoria").value;
     const est = document.getElementById("filtro-estado").value;
+    const orden = document.getElementById("filtro-orden").value;
     const lista = this.app.filtrarCombinado(cat, est);
+
+    // Ordenar la lista según la opción seleccionada
+    if (orden) {
+      lista.sort((a, b) => {
+        switch (orden) {
+          case "nombre":
+            return a.nombre.localeCompare(b.nombre, "es");
+          case "categoria":
+            return a.categoria.localeCompare(b.categoria, "es");
+          case "costo-mayor":
+            return b.getCostoMensual() - a.getCostoMensual();
+          case "costo-menor":
+            return a.getCostoMensual() - b.getCostoMensual();
+          case "cobro":
+            return (a.fechaCobro || "9999-12-31").localeCompare(b.fechaCobro || "9999-12-31");
+          default:
+            return 0;
+        }
+      });
+    }
 
     this.renderDashboard(); // siempre sobre el total, no sobre la lista filtrada
     this.renderTabla(lista);
+    this.renderCalendario();
+  }
+
+  /* ============================================================
+   *  Renderizado del Calendario de Cobros
+   * ============================================================ */
+
+  /**
+   * Renderiza el calendario mensual mostrando las suscripciones activas
+   * en los días que corresponden a su fecha de cobro.
+   */
+  renderCalendario() {
+    const MESES = [
+      "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+      "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
+    ];
+
+    // Actualizar título
+    const titulo = document.getElementById("cal-mes-titulo");
+    if (titulo) titulo.textContent = `${MESES[this.calMes]} ${this.calAnio}`;
+
+    // Obtener suscripciones por día
+    const subsPorDia = this.app.getSuscripcionesPorDia(this.calAnio, this.calMes);
+
+    // Calcular estructura del mes
+    const primerDia = new Date(this.calAnio, this.calMes, 1);
+    const diasEnMes = new Date(this.calAnio, this.calMes + 1, 0).getDate();
+    // Convertir: JS getDay() 0=Dom → Monday-first: (getDay()+6)%7 → Lun=0, Dom=6
+    const offsetInicio = (primerDia.getDay() + 6) % 7;
+
+    // Fecha de hoy para marcar el día actual
+    const hoy = new Date();
+    const esHoyMes = hoy.getMonth() === this.calMes && hoy.getFullYear() === this.calAnio;
+    const diaHoy = hoy.getDate();
+
+    const cuerpo = document.getElementById("cal-cuerpo");
+    if (!cuerpo) return;
+    cuerpo.innerHTML = "";
+
+    // Celdas vacías antes del primer día
+    for (let i = 0; i < offsetInicio; i++) {
+      const vacio = document.createElement("div");
+      vacio.className = "cal-dia-vacio";
+      cuerpo.appendChild(vacio);
+    }
+
+    // Celdas para cada día del mes
+    for (let dia = 1; dia <= diasEnMes; dia++) {
+      const celda = document.createElement("div");
+      celda.className = "cal-dia";
+
+      if (esHoyMes && dia === diaHoy) celda.classList.add("cal-hoy");
+
+      const subs = subsPorDia.get(dia);
+      if (subs && subs.length > 0) celda.classList.add("cal-con-cobro");
+
+      // Número del día
+      const numero = document.createElement("div");
+      numero.className = "cal-dia-numero";
+      numero.textContent = dia;
+      celda.appendChild(numero);
+
+      // Chips de suscripciones
+      if (subs && subs.length > 0) {
+        subs.forEach(s => {
+          const chip = document.createElement("div");
+          chip.className = "cal-cobro-chip";
+          chip.innerHTML = `${renderLogo(s.nombre, 20)}<span class="chip-nombre">${this._escapeHTML(s.nombre)}</span><span class="chip-monto">${this._formatCurrency(s.costo, s.moneda)}</span>`;
+          celda.appendChild(chip);
+        });
+      }
+
+      cuerpo.appendChild(celda);
+    }
+  }
+
+  /**
+   * Navega el calendario un mes hacia adelante o atrás.
+   * @param {number} direccion - -1 para anterior, +1 para siguiente
+   */
+  _navegarCalendario(direccion) {
+    this.calMes += direccion;
+    if (this.calMes > 11) {
+      this.calMes = 0;
+      this.calAnio++;
+    } else if (this.calMes < 0) {
+      this.calMes = 11;
+      this.calAnio--;
+    }
+    this.renderCalendario();
   }
 
   /* ============================================================
@@ -1191,6 +1328,9 @@ class UI {
     document
       .getElementById("filtro-estado")
       .addEventListener("change", () => this._actualizarVista());
+    document
+      .getElementById("filtro-orden")
+      .addEventListener("change", () => this._actualizarVista());
 
     /* ---- NOTIFICACIONES ---- */
     document.getElementById("btn-notificaciones").addEventListener("click", async () => {
@@ -1204,6 +1344,14 @@ class UI {
       if ("Notification" in window && Notification.permission === "granted") {
         this._verificarCobrosProximos();
       }
+    });
+
+    /* ---- CALENDARIO: navegación mensual ---- */
+    document.getElementById("cal-anterior").addEventListener("click", () => {
+      this._navegarCalendario(-1);
+    });
+    document.getElementById("cal-siguiente").addEventListener("click", () => {
+      this._navegarCalendario(1);
     });
 
     /* ---- PREVIEW de logo en el modal ---- */
