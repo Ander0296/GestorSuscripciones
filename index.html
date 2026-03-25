@@ -218,9 +218,9 @@
               </select>
             </div>
           </div>
-          <div class="form-row">
+          <div class="form-row form-row-3">
             <div class="form-group">
-              <label for="sub-costo">Costo ($)</label>
+              <label for="sub-costo">Costo</label>
               <input
                 type="number"
                 id="sub-costo"
@@ -231,7 +231,15 @@
               />
             </div>
             <div class="form-group">
-              <label for="sub-ciclo">Ciclo de Facturación</label>
+              <label for="sub-moneda">Moneda</label>
+              <select id="sub-moneda" required>
+                <option value="USD">US$ Dólar</option>
+                <option value="ARS">AR$ Peso</option>
+                <option value="EUR">€ Euro</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="sub-ciclo">Ciclo</label>
               <select id="sub-ciclo" required>
                 <option value="semanal">Semanal</option>
                 <option value="mensual" selected>Mensual</option>

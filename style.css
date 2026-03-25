@@ -189,6 +189,10 @@ body {
     gap: 16px;
 }
 
+.form-row-3 {
+    grid-template-columns: 1fr 1fr 1fr;
+}
+
 /* Radios de estado */
 .radio-group {
     display: flex;
@@ -396,6 +400,11 @@ body {
     color: var(--text-muted);
     margin-top: 5px;
     font-weight: 600;
+}
+
+.stat-multi {
+    font-size: 1.1rem;
+    line-height: 1.4;
 }
 
 /* Acentos de color por tarjeta */
@@ -783,6 +792,7 @@ body {
     .btn#btn-nueva { width: 100%; }
 
     .form-row { grid-template-columns: 1fr; }
+    .form-row-3 { grid-template-columns: 1fr; }
 
     /* Ocultar nombre de marca en pantallas pequeñas */
     .brand-name { display: none; }

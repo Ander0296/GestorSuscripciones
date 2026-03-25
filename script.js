@@ -118,6 +118,12 @@ const CATALOGO_SERVICIOS = {
   }
 };
 
+const MONEDAS = {
+  USD: { simbolo: "US$", nombre: "Dólar estadounidense" },
+  ARS: { simbolo: "AR$", nombre: "Peso argentino" },
+  EUR: { simbolo: "€", nombre: "Euro" }
+};
+
 function buscarServicio(nombre) {
   if (!nombre) return null;
   const normalizado = nombre.toLowerCase().replace(/[^a-z0-9+]/g, "");
@@ -233,6 +239,7 @@ class Suscripcion {
     fechaCobro,
     estado,
     ciclo,
+    moneda,
     creadaEn,
   } = {}) {
     this.id =
@@ -243,6 +250,7 @@ class Suscripcion {
     this.fechaCobro = fechaCobro; // YYYY-MM-DD
     this.estado = estado || "activa";
     this.ciclo = ciclo || "mensual";
+    this.moneda = moneda || "USD";
     this.creadaEn = creadaEn || new Date().toISOString();
   }
 
@@ -302,6 +310,7 @@ class Suscripcion {
       fechaCobro: this.fechaCobro,
       estado: this.estado,
       ciclo: this.ciclo,
+      moneda: this.moneda,
       creadaEn: this.creadaEn,
     };
   }
@@ -616,6 +625,17 @@ class AppManager {
    * pero el proveedor podría cobrarlas de todas formas.
    * @returns {Suscripcion[]}
    */
+  getGastoMensualPorMoneda() {
+    const gastos = {};
+    this.suscripciones
+      .filter(s => s.estaActiva())
+      .forEach(s => {
+        if (!gastos[s.moneda]) gastos[s.moneda] = 0;
+        gastos[s.moneda] += s.getCostoMensual();
+      });
+    return gastos;
+  }
+
   getServiciosInactivos() {
     return this.suscripciones.filter((s) => s.tieneCobroPendiente());
   }
@@ -720,18 +740,34 @@ class UI {
     document.getElementById("stat-activas").textContent =
       this.app.getTotalActivas();
 
-    document.getElementById("stat-mensual").textContent = this._formatCurrency(
-      this.app.getGastoMensualTotal(),
-    );
+    const gastosPorMoneda = this.app.getGastoMensualPorMoneda();
+    const monedas = Object.keys(gastosPorMoneda);
+    const esMulti = monedas.length > 1;
 
-    document.getElementById("stat-anual").textContent = this._formatCurrency(
-      this.app.getGastoAnualProyectado(),
-    );
+    const statMensual = document.getElementById("stat-mensual");
+    const statAnual = document.getElementById("stat-anual");
+
+    if (monedas.length === 0) {
+      statMensual.textContent = this._formatCurrency(0);
+      statMensual.classList.remove("stat-multi");
+      statAnual.textContent = this._formatCurrency(0);
+      statAnual.classList.remove("stat-multi");
+    } else if (!esMulti) {
+      const moneda = monedas[0];
+      statMensual.textContent = this._formatCurrency(gastosPorMoneda[moneda], moneda);
+      statMensual.classList.remove("stat-multi");
+      statAnual.textContent = this._formatCurrency(gastosPorMoneda[moneda] * 12, moneda);
+      statAnual.classList.remove("stat-multi");
+    } else {
+      statMensual.innerHTML = monedas.map(m => this._formatCurrency(gastosPorMoneda[m], m)).join("<br>");
+      statMensual.classList.add("stat-multi");
+      statAnual.innerHTML = monedas.map(m => this._formatCurrency(gastosPorMoneda[m] * 12, m)).join("<br>");
+      statAnual.classList.add("stat-multi");
+    }
 
     const inactivos = this.app.getServiciosInactivos();
     document.getElementById("stat-inactivos").textContent = inactivos.length;
 
-    // Resaltar la tarjeta de alerta en amarillo si hay servicios problemáticos
     const cardAlerta = document.querySelector(".card-alerta");
     cardAlerta.classList.toggle("card-alerta--activa", inactivos.length > 0);
   }
@@ -769,10 +805,10 @@ class UI {
                     <span class="badge badge-categoria">${this._escapeHTML(s.categoria)}</span>
                 </td>
                 <td data-label="Costo/Mes" class="text-right">
-                    ${this._formatCurrency(s.getCostoMensual())} <span class="badge badge-ciclo">${s.ciclo}</span>
+                    ${this._formatCurrency(s.getCostoMensual(), s.moneda)} <span class="badge badge-ciclo">${s.ciclo}</span>
                 </td>
                 <td data-label="Costo/Año" class="text-right">
-                    ${this._formatCurrency(s.getCostoAnual())}
+                    ${this._formatCurrency(s.getCostoAnual(), s.moneda)}
                 </td>
                 <td data-label="Próximo Cobro">
                     ${this._formatDate(s.fechaCobro)}
@@ -841,6 +877,7 @@ class UI {
     document.getElementById("modal-title").textContent = "Nueva Suscripción";
     this.formSub.reset();
     this._limpiarLogoPreview();
+    document.getElementById("sub-moneda").value = "USD";
     document.getElementById("sub-ciclo").value = "mensual";
     document.querySelector('input[name="sub-estado"][value="activa"]').checked =
       true;
@@ -863,6 +900,7 @@ class UI {
     document.getElementById("sub-nombre").value = sub.nombre;
     document.getElementById("sub-categoria").value = sub.categoria;
     document.getElementById("sub-costo").value = sub.costo;
+    document.getElementById("sub-moneda").value = sub.moneda;
     document.getElementById("sub-ciclo").value = sub.ciclo;
     document.getElementById("sub-fecha").value = sub.fechaCobro;
 
@@ -947,8 +985,9 @@ class UI {
    * @param   {number} valor
    * @returns {string}  Ej: "$15.99"
    */
-  _formatCurrency(valor) {
-    return `$${valor.toFixed(2)}`;
+  _formatCurrency(valor, moneda = "USD") {
+    const simbolo = MONEDAS[moneda]?.simbolo || "$";
+    return `${simbolo}${valor.toFixed(2)}`;
   }
 
   /**
@@ -1064,6 +1103,7 @@ class UI {
         nombre: document.getElementById("sub-nombre").value.trim(),
         categoria: document.getElementById("sub-categoria").value,
         costo: document.getElementById("sub-costo").value,
+        moneda: document.getElementById("sub-moneda").value,
         ciclo: document.getElementById("sub-ciclo").value,
         fechaCobro: document.getElementById("sub-fecha").value,
         estado: document.querySelector('input[name="sub-estado"]:checked')
